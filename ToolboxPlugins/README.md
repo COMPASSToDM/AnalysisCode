@@ -6,6 +6,11 @@ Template:
 Name: 
 Description: 
 Added by: 
-=========================
+==========================
 
 Toolbox Plugins available so far: 
+==========================
+Name: ToolboxTemplate.cc 
+Description: Extensively commented template for toolbox analysis. Example of retrieving and plotting z vertex position from TGeant file.
+Added by: Riccardo on 28/08/2017 
+==========================

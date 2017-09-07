@@ -11,7 +11,7 @@
  */
 class ToolboxTemplate : ToolboxPlugin
 {
-  public:
+  \public:
     ToolboxTemplate(void);
     ~ToolboxTemplate(void) {}
 

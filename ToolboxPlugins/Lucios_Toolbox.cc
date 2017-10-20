@@ -213,8 +213,8 @@ void Lucios_Toolbox::beginOfEvents(void)
 
 bool Lucios_Toolbox::processEvent(T4Event* event)
 { //ANALISI DEL RICH
- vector <int> tracks;
 
+ vector <int> tracks;
  for (unsigned int i = 0; i < event->rich.size(); i++) {
  
  T4RichData* richphoton = &event->rich.at(i);
@@ -228,27 +228,32 @@ bool Lucios_Toolbox::processEvent(T4Event* event)
  
  T4Trajectory* trajectory = &event->beamData.trajectories.at(j);
 
-
     if (trajectory->position[2]/10>=-68.4 && trajectory->position[2]/10>=-28.4 && trajectory->trackId==richtrack) {
-       tracks.push_back(trajectory->particleId);
-       for (int z = 0; z < tracks.size(); z++) //{cout << tracks.at(z) << endl;} 
-       {
-       if (tracks.at(z) != tracks.at(z-1)) {
+        for(int k = 0; k < tracks.size(); k++){
+            if(j == tracks.at(k)) break;
+        }
+       tracks.push_back(j);
        moment_vs_cheren->Fill(richmoment, richphoton->cerenkovAngle*1000);
        if (trajectory->particleId==2212) {
        richproton++;
-       mvch_per_particle.at(0)->Fill(richmoment, richphoton->cerenkovAngle*1000);}
-       if (abs(trajectory->particleId)==211 || trajectory->particleId==111) {
-       richpion++;
-       mvch_per_particle.at(1)->Fill(richmoment, richphoton->cerenkovAngle*1000);}
-       if (abs(trajectory->particleId)==321 || trajectory->particleId==130 || trajectory->particleId==310) {
-       richkaon++;
-       mvch_per_particle.at(2)->Fill(richmoment, richphoton->cerenkovAngle*1000);}
-       if (trajectory->particleId==-2212) {
-       richantip++;
-       mvch_per_particle.at(3)->Fill(richmoment, richphoton->cerenkovAngle*1000);}
+       mvch_per_particle.at(0)->Fill(richmoment, richphoton->cerenkovAngle*1000);
+       break;
        }
-       else break;}
+       else if (abs(trajectory->particleId)==211 || trajectory->particleId==111) {
+       richpion++;
+       mvch_per_particle.at(1)->Fill(richmoment, richphoton->cerenkovAngle*1000);
+       break;
+       }
+       else if (abs(trajectory->particleId)==321 || trajectory->particleId==130 || trajectory->particleId==310) {
+       richkaon++;
+       mvch_per_particle.at(2)->Fill(richmoment, richphoton->cerenkovAngle*1000);
+       break;
+       }
+       else if (trajectory->particleId==-2212) {
+       richantip++;
+       mvch_per_particle.at(3)->Fill(richmoment, richphoton->cerenkovAngle*1000);
+       break;}
+       else break;
        }}//break;
        }
   

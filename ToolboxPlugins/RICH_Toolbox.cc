@@ -3,16 +3,18 @@
 #include <vector>
 #include <string>
 
-class Lucios_Toolbox : ToolboxPlugin
+class RICH_Toolbox : ToolboxPlugin
 {
   public:
-    Lucios_Toolbox(void);
-    ~Lucios_Toolbox(void) {}
+    RICH_Toolbox(void);
+    ~RICH_Toolbox(void) {}
 
     std::string getDescription(void);
     bool processEvent(T4Event* event);
     void endOfEvents(void);
     void beginOfEvents(void);
+
+    int GetTrackIndex(int trackID);
 
   private:
 
@@ -50,22 +52,22 @@ class Lucios_Toolbox : ToolboxPlugin
 
 };
 
-static Lucios_Toolbox* lucios_toolbox = new Lucios_Toolbox();
+static RICH_Toolbox* rich_toolbox = new RICH_Toolbox();
 
-Lucios_Toolbox::Lucios_Toolbox(void)
+RICH_Toolbox::RICH_Toolbox(void)
 {
-  myName = "Lucios_Toolbox";
+  myName = "RICH_Toolbox";
   pluginList::getInstance()->activated_classes.push_back(this);
 }
 
-std::string Lucios_Toolbox::getDescription(void)
+std::string RICH_Toolbox::getDescription(void)
 {
   std::string description = "Toolbox for Lucio's thesis.\n";
   description += "Generator: GEANT";
   return description;
 }
 
-void Lucios_Toolbox::beginOfEvents(void)
+void RICH_Toolbox::beginOfEvents(void)
 { 
   //inizializzo i counters
   antip, p, pim, pip, pi0, km, kp, k0, k0l, k0s, n, others, em, ep, adron, lepton, ggamma, sec, secantip, recprot = 0;
@@ -210,11 +212,83 @@ void Lucios_Toolbox::beginOfEvents(void)
 
 } //fine void beginOfEvents
 
+int RICH_Toolbox::GetTrackIndex(int trackID){
+    for (unsigned int j = 0; j < event->beamData.trajectories.size(); j++) {
+    T4Trajectory* trajectory = &event->beamData.trajectories.at(j);
+        if(trajectory->trackId == trackID) return j;
+    }
+}
 
-bool Lucios_Toolbox::processEvent(T4Event* event)
-{ //ANALISI DEL RICH
+bool RICH_Toolbox::processEvent(T4Event* event)
+{
+ //Riccardo's trial: create for each track giving a light cone an arry containing all the photons and the cherenkov angles
+  vector < int > tracksInRICH;
+  vector < double > meanCher;
+  vector < double > pid;
+  vector < TVector3 > momentum;
 
- vector <int> tracks;
+  for (unsigned int i = 0; i < event->rich.size(); i++) {
+
+    T4RichData* rph = &event->rich.at(i);
+    int mtrack = rph->parentTrackId;
+    bool already_found(false);
+    for(int k = 0; k < tracksInRICH.size(); k++)
+    {
+         if(tracksInRICH.at(k) == mtrack){
+              already_found = true;
+              break;
+    }
+    if(already_found) continue;
+    //Find the associated mother trajectory
+    int iT = GetTrackIndex(mtrack);
+    T4Trajectory* traj = &event->beamData.trajectories.at(iT);
+    if(traj->position[2]/10 >= -68.4 && traj->position[2]/10 >= -28.4)
+             tracksInRICH.push_back(iT);
+             pid.push_back(traj->particleId);
+             TVector3 pMom(rph->momentumMotherParticle[0], rph->momentumMotherParticle[1], rph->momentumMotherParticle[2]);
+             momentum.push_back(pMom);
+    }
+ }
+  //At the end of this loop we are supposed to have all the tracks coming from the target and producing a light cone in the rich
+  //Now let's do another vector, computing for each track the mean of the cherenkov angle aperture
+
+  for (int iTrack = 0; iTrack < tracksInRICH.size(); iTrack++){
+      T4Trajectory* traje = &event->beamData.trajectories.at(iTrack);
+      meanCher.push_back(0);
+      double entries = 0;
+      for (unsigned int i = 0; i < event->rich.size(); i++)
+        {
+            T4RichData* rph = &event->rich.at(i);
+            if(rph->parentTrackId == traje->trackId){
+                meanCher.back() += (rph->cerenkovAngle*1000);
+                entries++;
+            }
+        }
+      meanCher.back() = meanCher.back()/entries;
+  }
+  //At the end of this loop we should have the mean filled in the vector properly.
+
+  for(int i = 0; i < tracksInRICH.size(); i++){
+      moment_vs_cheren->Fill(momentum.at(i).Mag(), meanCher.at(i));
+      if (pid.at(i) == 2212) {
+          richproton++;
+          mvch_per_particle.at(0)->Fill(momentum.at(i).Mag(), meanCher.at(i));
+      }
+      if (abs(pid.at(i)) == 211 || pid.at(i) == 111) {
+          richpion++;
+          mvch_per_particle.at(1)->Fill(momentum.at(i).Mag(), meanCher.at(i));
+      }
+      if (abs(pid.at(i))==321 || pid.at(i) == 130 || pid.at(i) == 310) {
+      richkaon++;
+      mvch_per_particle.at(2)->Fill(momentum.at(i).Mag(), meanCher.at(i));
+      }
+      if ( pid.at(i) == -2212) {
+      richantip++;
+      mvch_per_particle.at(3)->Fill(momentum.at(i).Mag(), meanCher.at(i));
+      }
+  }
+ //ANALISI DEL RICH
+/* vector <int> tracks;
  for (unsigned int i = 0; i < event->rich.size(); i++) {
  
  T4RichData* richphoton = &event->rich.at(i);
@@ -260,7 +334,7 @@ bool Lucios_Toolbox::processEvent(T4Event* event)
        break;}
        else break;
        }}//break;
-       }
+       }*/
   
 //_____________________________________________________________________________________________________________________________________
 
@@ -408,7 +482,7 @@ bool Lucios_Toolbox::processEvent(T4Event* event)
 return true;
 } //fine bool
 
-void Lucios_Toolbox::endOfEvents(void)
+void RICH_Toolbox::endOfEvents(void)
 {
   //scrivo gli istogrammi del RICH
   moment_vs_cheren->Write();

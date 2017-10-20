@@ -229,10 +229,15 @@ bool Lucios_Toolbox::processEvent(T4Event* event)
  T4Trajectory* trajectory = &event->beamData.trajectories.at(j);
 
     if (trajectory->position[2]/10>=-68.4 && trajectory->position[2]/10>=-28.4 && trajectory->trackId==richtrack) {
-        for(int k = 0; k < tracks.size(); k++){
-            if(j == tracks.at(k)) break;
+       bool alreadyThere(false); 
+       for(int k = 0; k < tracks.size(); k++){
+            if(tracks.at(k) == trajectory->trackId){
+		 alreadyThere = true; 
+		 break;
+		}
         }
-       tracks.push_back(j);
+	if(alreadyThere) break;
+       tracks.push_back(trajectory->trackId);
        moment_vs_cheren->Fill(richmoment, richphoton->cerenkovAngle*1000);
        if (trajectory->particleId==2212) {
        richproton++;
